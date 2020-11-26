@@ -26,22 +26,19 @@ cur.execute('''CREATE TABLE IF NOT EXISTS Products
     (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, name TEXT, brand TEXT, barcode INTEGER UNIQUE, countries TEXT, ingredient_tags TEXT)''')
     
 #Reading the data and storing them to the database
-id = None
 count = 0
-cur.execute('SELECT max(id) FROM Products')
 try:
-    row = cur.fetchone()
-    if row is None :
-        id = 1
-    else:
-        id = row[0]
+    numOfProducts = int(input('Number of products to retreive: '))
 except:
-    id = 1
-if id is None : id = 1
-
+    print('Number of products set to 20000')
+    numOfProducts = 20000
+    time.sleep(5)
 print('Waiting to find unretreived data...')
 time.sleep(1)
-for product in openfoodfacts.products.search_all({}):   
+for product in openfoodfacts.products.search_all({}): 
+    if count == numOfProducts: 
+        print('I retreived: ', numOfProducts, 'new products!')
+        quit() 
     try:
         name = product['product_name']
         brand = product['brands']
@@ -53,6 +50,13 @@ for product in openfoodfacts.products.search_all({}):
             intags += ' ' 
     except:
         continue
+    cur.execute('''SELECT name FROM Products WHERE barcode = (?) ''', (barcode,))
+    try:
+        row = cur.fetchone()
+        if row is not None : 
+            continue
+    except:
+        row = None
     print('--------------------------------NEW PRODUCT--------------------------------')
     print(name, brand, '('+ barcode + ')')
     print('Countries: ', countries)
@@ -66,8 +70,8 @@ for product in openfoodfacts.products.search_all({}):
         conn.commit()
     if count % 100 == 0 : 
         print('4 seconds pause')
+        print('Remaining products to retreive: ', (numOfProducts - count))
         time.sleep(4)
-    id += 1
 
 conn.commit()
 cur.close()
